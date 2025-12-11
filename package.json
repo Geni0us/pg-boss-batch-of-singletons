@@ -54,12 +54,12 @@
     "queue",
     "job"
   ],
-  "author": "timgit",
+  "author": "Geni0us",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/timgit/pg-boss/issues"
+    "url": "https://github.com/Geni0us/pg-boss-batch-of-singletonss/issues"
   },
-  "homepage": "https://timgit.github.io/pg-boss",
+  "homepage": "https://github.io/Geni0us/pg-boss-batch-of-singletons",
   "files": [
     "dist",
     "README.md",
