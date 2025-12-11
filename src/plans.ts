@@ -599,6 +599,7 @@ function fetchNextJob ({ schema, table, name, policy, limit, includeMetadata, pr
     state < '${JOB_STATES.active}'
     ${ignoreStartAfter ? '' : 'AND start_after < now()'}
     ${hasIgnoreSingletons ? 'AND singleton_key <> ALL($1::text[])' : ''}
+    AND singleton_key not in (select distinct singleton_key from ${schema}.${table} where state = '${JOB_STATES.active}')
     )`
     : ''
 
