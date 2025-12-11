@@ -591,6 +591,16 @@ function fetchNextJob ({ schema, table, name, policy, limit, includeMetadata, pr
   const singletonFetch = limit > 1 && (policy === QUEUE_POLICIES.singleton || policy === QUEUE_POLICIES.stately)
   const cte = singletonFetch ? 'grouped' : 'next'
   const hasIgnoreSingletons = ignoreSingletons != null && ignoreSingletons.length > 0
+  const selectSingletons = singletonFetch
+    ? `AND id in (
+    select distinct on (singleton_key) id 
+    from ${schema}.${table}
+    where name = '${name}') and
+    state < '${JOB_STATES.active}'
+    ${ignoreStartAfter ? '' : 'AND start_after < now()'}
+    ${hasIgnoreSingletons ? 'AND singleton_key <> ALL($1::text[])' : ''}
+    )`
+    : ''
 
   return {
     text: `
@@ -601,6 +611,7 @@ function fetchNextJob ({ schema, table, name, policy, limit, includeMetadata, pr
         AND state < '${JOB_STATES.active}'
         ${ignoreStartAfter ? '' : 'AND start_after < now()'}
         ${hasIgnoreSingletons ? 'AND singleton_key <> ALL($1::text[])' : ''}
+        ${singletonFetch ? selectSingletons : ''}
       ORDER BY ${priority ? 'priority desc, ' : ''}created_on, id
       LIMIT ${limit}
       FOR UPDATE SKIP LOCKED
@@ -612,7 +623,6 @@ function fetchNextJob ({ schema, table, name, policy, limit, includeMetadata, pr
       retry_count = CASE WHEN started_on IS NOT NULL THEN retry_count + 1 ELSE retry_count END
     FROM ${cte}
     WHERE name = '${name}' AND j.id = ${cte}.id
-      ${singletonFetch ? ` AND ${cte}.row_number = 1` : ''}
     RETURNING j.${includeMetadata ? JOB_COLUMNS_ALL : JOB_COLUMNS_MIN}
   `,
     values: hasIgnoreSingletons ? [ignoreSingletons] : []
